@@ -22,25 +22,22 @@ namespace MizeRateLimiter
         {
             await m_semaphore.WaitAsync();
 
-            foreach (IRateLimitRule rule in m_rules)
-            {
-                await rule.WaitForAvailabilityAsync();
-            }
-
-            DateTime time = DateTime.UtcNow;
-            await m_action(argument);
-
             try
             {
                 foreach (IRateLimitRule rule in m_rules)
                 {
-                    rule.RecordCall(time);
+                    await rule.WaitForAvailabilityAsync();
                 }
             }
             finally
             {
                 m_semaphore.Release();
             }
+
+            await m_action(argument);
+
+            DateTime time = DateTime.UtcNow;
+            m_rules.ForEach(rule => rule.RecordCall(time));
         }
     }
 }

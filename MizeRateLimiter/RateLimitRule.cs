@@ -18,27 +18,28 @@ namespace MizeRateLimiter
 
         public async Task WaitForAvailabilityAsync()
         {
-            while (true)
+            bool isAvailable = false;
+
+            while (!isAvailable)
             {
-                // Remove timestamps outside the window
                 while (m_callTimestamps.TryPeek(out var timestamp) &&
-                    DateTime.UtcNow - timestamp > TimeWindow)
+                       DateTime.UtcNow - timestamp > TimeWindow)
                 {
                     m_callTimestamps.TryDequeue(out _);
                 }
 
                 if (m_callTimestamps.Count < MaxCalls)
                 {
-                    return;
+                    isAvailable = true;
                 }
-
-                m_callTimestamps.TryPeek(out DateTime oldest);
-                var delay = TimeWindow - (DateTime.UtcNow - oldest);
-                if (delay > TimeSpan.Zero)
+                else if (m_callTimestamps.TryPeek(out DateTime oldest))
                 {
-                    await Task.Delay(delay);
+                    var delay = TimeWindow - (DateTime.UtcNow - oldest);
+                    if (delay > TimeSpan.Zero)
+                    {
+                        await Task.Delay(delay);
+                    }
                 }
-                    
             }
         }
 
